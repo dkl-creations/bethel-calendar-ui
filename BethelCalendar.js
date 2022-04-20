@@ -1,17 +1,21 @@
 var BethelCalendar = {
 
     token: "",
+    useWebflowItemPages: false,
 
     dates: {
+        today: {},
         begin: {},
-        end: {}
+        end: {},
+        weekBeginOffset:0,
+        weekEndOffset:0,
     },
     category: "",
 
     data: [],
 
     routes: {
-        default: "http://localhost:8080/data/calendar-items-04-05-22.html"
+        items: ""
     },
 
     canvas: false,
@@ -23,6 +27,19 @@ var BethelCalendar = {
     init: function( conf ) {
 
         window.cal = this;
+
+        /**
+         * Set config options
+         */
+         if ( typeof conf.token !== 'undefined' ) {
+            cal.token = conf.token;
+        }
+        if ( typeof conf.items_endpoint !== 'undefined' ) {
+            cal.routes.items = conf.items_endpoint;
+        }
+        if ( typeof conf.use_webflow_item_pages !== 'undefined' ) {
+            cal.useWebflowItemPages = conf.use_webflow_item_pages;
+        }
 
         /**
          * Get URL paramaters, set initial begin and end dates
@@ -38,6 +55,7 @@ var BethelCalendar = {
             e = cal.getURLParameter("calendar-end");
         }
 
+        cal.dates.today = cal.dateCalc(0);
         cal.createDates(b,e);
         cal.canvas = cal.eID(conf.canvas_id);
         cal.templateDay = conf.template_day;
@@ -80,8 +98,6 @@ var BethelCalendar = {
         cal.dates["begin"] = begin;
         cal.dates["end"] = end;
 
-        console.log(cal.dates);
-
     },
 
     createCalendar: function() {
@@ -98,11 +114,30 @@ var BethelCalendar = {
             offset:0,
             limit:1000
         }
-
-        window.cal.dataLoader(cal.createItems,params);
         
-        // TODO Was there 100 items? Let's load page 2. (Future)
-        // TODO Does it span multiple weeks or months? Let's load second end point. (Future)
+        /**
+         * Endpoint caller. Webflow vs proper API.
+         */
+        if ( cal.useWebflowItemPages == true ) {
+
+            params = {
+                offset:0,
+                limit:100
+            }
+
+            window.cal.dataLoader(cal.createItems, params, cal.routes.items.replace("{fortnight_offset}",cal.dates.begin["fortnight_offset"]) ); /* First two weeks worth of items*/
+            /* TODO Was there 100 items from webflow? Let's load page 2. YUCK! (Future) */
+
+            if ( cal.dates.end["fortnight_offset"] != cal.dates.begin["fortnight_offset"] ) {
+                window.cal.dataLoader(cal.createItems,params, cal.routes.items.replace("{fortnight_offset}",cal.dates.end["fortnight_offset"]) ); /* Second two weeks worth of items*/
+                /* TODO Was there 100 items? Let's load page 2. (Future) */
+            }
+
+        }
+        else {
+            /* TODO Load from API Endpoint */
+        }
+        
 
     },
 
@@ -124,18 +159,29 @@ var BethelCalendar = {
     createItems: function( items ) {
 
         items.forEach(function(item) {
-            if ( typeof cal.data[item["start_date"]] !== 'undefined' ) { // Looks like the item is within our accepted date range
-                
-                cal.data[item["start_date"]]["items"].push(item);
-                cal.uiAddItem("calendar-day-"+item["start_date"],item);
+            if ( typeof cal.data[item["start_date"]] !== 'undefined' ) { /* Looks like the item is within our accepted date range */
+
+                if ( cal.checkDuplicateItem(item) == false)  { /* Looks like the item doesn't already exist for this day */
+
+                    cal.data[item["start_date"]]["items"].push(item);
+                    cal.uiAddItem("calendar-day-"+item["start_date"],item);
+                }
+
             }
         });
 
         cal.uiVisibleDays();
     },
 
-    filterCalendarByCategory: function() {
-
+    checkDuplicateItem: function ( item ) {
+        return cal.data[item["start_date"]]["items"].some(function(i) {
+            if ( i.title === item.title && i.details === item.details ) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }); 
     },
 
     /**
@@ -146,11 +192,9 @@ var BethelCalendar = {
      */
     dataLoader: function( foo, params = false, endpoint = false, method = "GET", token = false ) {
 
-        // Call our default if none is set
-        if ( endpoint == false) {
-            endpoint = cal.routes["default"];
-        }
-        // Append Params for GET queries
+        console.log("LOADING: "+endpoint);
+        
+        /* Append Params for GET queries */
         if ( method == "GET" || method == "" ) {
             var str = "";
             for (var key in params) {
@@ -161,7 +205,7 @@ var BethelCalendar = {
             }
         }
 
-        // Do the work
+        /* Do the work */
         var xhttp = new XMLHttpRequest();
         
         /* Webflow ugly doc*/
@@ -172,42 +216,31 @@ var BethelCalendar = {
 
                 cal.uiRemoveLoaders();
 
-                if ( this.status == 200 || this.status == 201 ) { // Ok or Resource Created
+                if ( this.status == 200 ) {
                     
-                    if ( this.getResponseHeader('content-type').indexOf("json") > 0 ) { // If it's JSON, let's parse it cause we did it right!
-                        //return cal.translateResponse(JSON.parse(this.responseText));
+                    if ( this.getResponseHeader('content-type').indexOf("json") > 0 ) { /* If it's JSON, let's parse it cause we built it right! */
+                        /* return cal.translateResponse(JSON.parse(this.responseText)); */
                     }
-                    else {
+                    else if ( cal.useWebflowItemPages == true ) {
                         /* Webflow ugly doc*/
                         return foo(cal.parseWebflowHTMLItems(xhttp.responseXML));
                     }
 
                 }
                 else {
-                    // TODO display error output in UI
+                    /* TODO display error output in UI */
                 }
 
             }
         }
         xhttp.open(method, endpoint, true);
 
-        //xhttp.setRequestHeader('content-type', 'application/json');
-        //xhttp.setRequestHeader('content-type', 'text/html');
+        /* 
+        xhttp.setRequestHeader('content-type', 'application/json');
+        xhttp.setRequestHeader('content-type', 'text/html');
+        */
 
         xhttp.send(params);
-    },
-
-    /* Data Translater */
-    translateResponse: function( r ) {
-
-        if ( typeof r === 'object' ) { // If OBJECT -> CONGRATS, you've managed to do it right.
-            
-            // TODO Return only the relevant data
-        }
-        else {
-            
-        }
-
     },
 
     /* Webflow ugly doc parser */
@@ -243,16 +276,16 @@ var BethelCalendar = {
     dateCalc: function( offset, day = false ) {
 
         var r = [];
-        if ( typeof day === 'string' || day instanceof String ) { // String passed
-            // TODO - Make sure this user passed value is A-OK
+        if ( typeof day === 'string' || day instanceof String ) { /* String passed */
+            /* TODO - Make sure this user passed value is A-OK */
             var parts = day.split('-');
             var t = new Date(parts[0], parts[1] - 1, parts[2]);
         }
-        else if ( day instanceof Date ) {  // Date object passed
+        else if ( day instanceof Date ) {  /* Object passed */
             var t = day;
 
         }
-        else {  // Nothing meaningful passed
+        else {  /* Nothing useful passed */
             var t = new Date();
         }
 
@@ -263,6 +296,12 @@ var BethelCalendar = {
         r["formatted"] = m+'/'+d+'/'+y;
         r["unformatted"] = y+'-'+m.toString().padStart(2,0)+'-'+d.toString().padStart(2,0);
         r["object"] = t;
+
+        if ( cal.dates.today["object"] instanceof Date ) {
+            r["weeks_offset"] = Math.floor((t - cal.dates.today["object"]) / (1000*60*60*24*7));
+            r["fortnight_offset"] = Math.floor(r["weeks_offset"] / 2);
+        }
+
         return r;
     },
 
@@ -339,9 +378,10 @@ var BethelCalendar = {
         });
     },
 
+    /**
+    * Show all events that have this category, hide all events that don't. Re-run uiVisibleDays
+    */
     uiVisibleCategory: function ( category ) {
-        // Show all events that have this category, hide all events that don't. Re-run uiVisibleDays
-
         
         var items = cal.canvas.querySelectorAll("div.calendar-list-item");
 
@@ -360,10 +400,10 @@ var BethelCalendar = {
     },
     
     uiFilterListeners: function() {
-        // Date Change
+        /* Trigger Date Change */
         cal.eID("calendar-date-filter-go").addEventListener("click", function() {
 
-            // Get date
+            /* Get date from filter */
             var b = e = false;
             var d = cal.eID("calendar-date-filter").value;
             d = d.split("-");
@@ -385,7 +425,7 @@ var BethelCalendar = {
 
         });
 
-        // Category Change
+        /* Trigger Category Change */
         var catsList = cal.eID("calendar-category-dropdown").querySelectorAll("a.calendar-category-link");
         catsList.forEach(function(c, index) {
             c.addEventListener("click", function(event) {
@@ -398,12 +438,13 @@ var BethelCalendar = {
                 if ( n == "View All Categories" ) {
                     n = "";
                 }
+
                 cal.uiVisibleCategory( n );
                 
             });
         });
 
-        // List/Grid View Change
+        /* Trigger List or Grid View */
         cal.eID("toggle-list-view").addEventListener('click', () => {
             cal.canvas.classList.add("list-view");
             cal.currentView = "list";

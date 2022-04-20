@@ -1,5 +1,8 @@
 # bethel-calendar-ui
 
+
+#Sample Calendar
+
 ```
 var calConfig = {
     'token': "",
@@ -10,4 +13,28 @@ var calConfig = {
 };
 
 Object.create(BethelCalendar).init(calConfig);
+```
+
+
+# Sample Datepicker
+
+```
+var multi = new Datepicker('#calendar-date-filter', {
+    ranged: true,
+    time: false,
+    separator: " - ",
+    fromValue: String => [BethelCalendar.dates.begin["unformatted"],BethelCalendar.dates.end["unformatted"]],
+    min: (function(){
+        var date = new Date();
+        date.setDate(date.getDate() - 10);
+        return date;
+    })(),
+    max: (function(){
+        var date = new Date();
+        date.setDate(date.getDate() + 185);
+        return date;
+    })(),
+    onChange: function() {
+    }
+});
 ```

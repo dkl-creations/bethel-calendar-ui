@@ -1,7 +1,7 @@
 # bethel-calendar-ui
 
 
-#Sample Calendar
+#Sample Calendar JS
 
 ```
 var calConfig = {
@@ -17,8 +17,16 @@ var calConfig = {
 Object.create(BethelCalendar).init(calConfig);
 ```
 
+# Add this CSS tag if it doesn't exist in the site
+```
+<style>
+    .calendar-hidden {
+        display:none;
+    }
+</style>```
 
-# Sample Datepicker
+
+# Sample Datepicker JS
 
 ```
 var multi = new Datepicker('#calendar-date-filter', {
@@ -39,4 +47,16 @@ var multi = new Datepicker('#calendar-date-filter', {
     onChange: function() {
     }
 });
+```
+
+
+# Sample Includes if not using header
+
+```
+
+<link rel="stylesheet" href="datepicker.material.css">
+<script src="datepicker.js"></script>
+
+<script src="BethelCalendar.Min.js" type="text/javascript"></script>
+
 ```

@@ -1,5 +1,9 @@
 # bethel-calendar-ui
 
+Bethel Calendar Code by DKLC.
+
+Datepicker dependency by https://wwilsman.github.io/Datepicker.js/
+
 
 # Sample Calendar JS
 

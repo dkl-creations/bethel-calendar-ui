@@ -17,14 +17,14 @@ var calConfig = {
 Object.create(BethelCalendar).init(calConfig);
 ```
 
-# Add this CSS tag if it doesn't exist in the site
-```
+# Add this CSS style if it doesn't already exist in the site CSS
+
 <style>
     .calendar-hidden {
         display:none;
     }
 </style>
-```
+
 
 
 # Sample Datepicker JS

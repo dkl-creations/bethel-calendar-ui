@@ -23,12 +23,14 @@ Object.create(BethelCalendar).init(calConfig);
     .calendar-hidden {
         display:none;
     }
-</style>```
+</style>
+```
 
 
 # Sample Datepicker JS
 
 ```
+
 var multi = new Datepicker('#calendar-date-filter', {
     ranged: true,
     time: false,
@@ -47,6 +49,7 @@ var multi = new Datepicker('#calendar-date-filter', {
     onChange: function() {
     }
 });
+
 ```
 
 

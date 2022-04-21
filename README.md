@@ -1,7 +1,7 @@
 # bethel-calendar-ui
 
 
-#Sample Calendar JS
+# Sample Calendar JS
 
 ```
 var calConfig = {
@@ -15,6 +15,7 @@ var calConfig = {
 };
 
 Object.create(BethelCalendar).init(calConfig);
+
 ```
 
 # Add this CSS style if it doesn't already exist in the site CSS
@@ -28,8 +29,6 @@ Object.create(BethelCalendar).init(calConfig);
 
 
 # Sample Datepicker JS
-
-```
 
 var multi = new Datepicker('#calendar-date-filter', {
     ranged: true,
@@ -50,16 +49,12 @@ var multi = new Datepicker('#calendar-date-filter', {
     }
 });
 
-```
 
 
 # Sample Includes if not using header
 
-```
 
-<link rel="stylesheet" href="datepicker.material.css">
-<script src="datepicker.js"></script>
+<link rel="stylesheet" href="/path/to/datepicker.material.css">
+<script src="/path/to/datepicker.js"></script>
 
-<script src="BethelCalendar.Min.js" type="text/javascript"></script>
-
-```
+<script src="/path/to/BethelCalendar.Min.js" type="text/javascript"></script>
